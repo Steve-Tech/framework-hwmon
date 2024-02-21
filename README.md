@@ -11,7 +11,8 @@ As I have no idea what I'm doing, a lot of this code is based on the existing [f
 ## HWMON Interfaces
 
 - `fan[1-4]_input` - Read fan speed in RPM (read-only)
-- `fan[1-4]_target` - Set target fan speed in RPM (write-only)
+- `fan[1-4]_target` - Set target fan speed in RPM
+  - read-write on the first fan, write-only on the others
 - `pwm[1-4]` - Fan speed control in percent 0-100 (write-only)
 - `pwm[1-4]_enable` - Enable automatic fan control (write-only)
   - Currently you can write anything to enable, but I recommend writing `2` in case the driver is updated to support disabling automatic fan control.

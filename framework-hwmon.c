@@ -75,6 +75,41 @@ static ssize_t ec_set_target_rpm(u8 idx, u32 *val)
 	return 0;
 }
 
+static ssize_t ec_get_target_rpm(u8 idx, u32 *val)
+{
+	struct {
+		struct cros_ec_command msg;
+		struct ec_response_pwm_get_fan_rpm r;
+	} __packed buf;
+
+	struct cros_ec_device *ec;
+	int ret;
+	if (!ec_device)
+		return -ENODEV;
+
+	ec = dev_get_drvdata(ec_device);
+
+	// Zero out the data
+	memset(&buf, 0, sizeof(buf));
+
+	// Set the values
+	buf.msg.version = 0;
+	buf.msg.command = EC_CMD_PWM_GET_FAN_TARGET_RPM;
+	buf.msg.outsize = 0;
+	buf.msg.insize = sizeof(buf.r);
+
+	// index isn't supported, it should only return fan 0's target
+
+	ret = cros_ec_cmd_xfer_status(ec, &buf.msg);
+	if (ret < 0) {
+		return -EIO;
+	}
+
+	*val = buf.r.rpm;
+
+	return 0;
+}
+
 static ssize_t fw_fan_target_store(struct device *dev,
 				   struct device_attribute *attr,
 				   const char *buf, size_t count)
@@ -92,6 +127,25 @@ static ssize_t fw_fan_target_store(struct device *dev,
 	}
 
 	return count;
+}
+
+static ssize_t fw_fan_target_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct sensor_device_attribute *sen_attr = to_sensor_dev_attr(attr);
+
+	// Only fan 0 is supported
+	if (sen_attr->index != 0) {
+		return -EINVAL;
+	}
+
+	u32 val;
+	if (ec_get_target_rpm(sen_attr->index, &val) < 0) {
+		return -EIO;
+	}
+
+	// Format as string for sysfs
+	return sysfs_emit(buf, "%u\n", val);
 }
 
 // --- pwmN_enable ---
@@ -219,7 +273,7 @@ static ssize_t fw_pwm_max_show(struct device *dev,
 
 // clang-format off
 static SENSOR_DEVICE_ATTR_RO(fan1_input, fw_fan_speed, 0); // Fan Reading
-static SENSOR_DEVICE_ATTR_WO(fan1_target, fw_fan_target, 0); // Target RPM
+static SENSOR_DEVICE_ATTR_RW(fan1_target, fw_fan_target, 0); // Target RPM (RW on fan 0 only)
 static SENSOR_DEVICE_ATTR_WO(pwm1_enable, fw_pwm_enable, 0); // Set Fan Control Mode
 static SENSOR_DEVICE_ATTR_WO(pwm1, fw_pwm, 0); // Set Fan Speed
 static SENSOR_DEVICE_ATTR_RO(pwm1_min, fw_pwm_min, 0); // Min Fan Speed
