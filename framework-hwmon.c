@@ -324,8 +324,8 @@ static int __init fw_hwmon_init(void)
 		}
 	}
 
-	hwmon_dev = hwmon_device_register_with_groups(NULL, "framework_hwmon",
-						      NULL, fw_hwmon_groups);
+	hwmon_dev = hwmon_device_register_with_groups(
+		ec_device, "framework_hwmon", NULL, fw_hwmon_groups);
 	if (IS_ERR(hwmon_dev))
 		return PTR_ERR(hwmon_dev);
 
