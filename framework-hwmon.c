@@ -14,12 +14,10 @@ static struct device *ec_device;
 // Read the current fan speed from the EC's memory
 static ssize_t ec_get_fan_speed(u8 idx, u16 *val)
 {
-	struct cros_ec_device *ec;
-
 	if (!ec_device)
 		return -ENODEV;
 
-	ec = dev_get_drvdata(ec_device);
+	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
 	u8 offset = EC_MEMMAP_FAN + 2 * idx;
 
@@ -43,69 +41,43 @@ static ssize_t fw_fan_speed_show(struct device *dev,
 // --- fanN_target ---
 static ssize_t ec_set_target_rpm(u8 idx, u32 *val)
 {
-	struct {
-		struct cros_ec_command msg;
-		struct ec_params_pwm_set_fan_target_rpm_v1 p;
-	} __packed buf;
-
-	struct cros_ec_device *ec;
 	int ret;
 	if (!ec_device)
 		return -ENODEV;
 
-	ec = dev_get_drvdata(ec_device);
+	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
-	// Zero out the data
-	memset(&buf, 0, sizeof(buf));
+	struct ec_params_pwm_set_fan_target_rpm_v1 params = {
+		.rpm = *val,
+		.fan_idx = idx,
+	};
 
-	// Set the values
-	buf.msg.version = 1;
-	buf.msg.command = EC_CMD_PWM_SET_FAN_TARGET_RPM;
-	buf.msg.outsize = sizeof(buf.p);
-	buf.msg.insize = 0;
-
-	buf.p.rpm = *val;
-	buf.p.fan_idx = idx;
-
-	ret = cros_ec_cmd_xfer_status(ec, &buf.msg);
-	if (ret < 0) {
+	ret = cros_ec_cmd(ec, 1, EC_CMD_PWM_SET_FAN_TARGET_RPM, &params,
+			  sizeof(params), NULL, 0);
+	if (ret < 0)
 		return -EIO;
-	}
 
 	return 0;
 }
 
 static ssize_t ec_get_target_rpm(u8 idx, u32 *val)
 {
-	struct {
-		struct cros_ec_command msg;
-		struct ec_response_pwm_get_fan_rpm r;
-	} __packed buf;
-
-	struct cros_ec_device *ec;
 	int ret;
 	if (!ec_device)
 		return -ENODEV;
 
-	ec = dev_get_drvdata(ec_device);
+	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
-	// Zero out the data
-	memset(&buf, 0, sizeof(buf));
-
-	// Set the values
-	buf.msg.version = 0;
-	buf.msg.command = EC_CMD_PWM_GET_FAN_TARGET_RPM;
-	buf.msg.outsize = 0;
-	buf.msg.insize = sizeof(buf.r);
+	struct ec_response_pwm_get_fan_rpm resp;
 
 	// index isn't supported, it should only return fan 0's target
 
-	ret = cros_ec_cmd_xfer_status(ec, &buf.msg);
-	if (ret < 0) {
+	ret = cros_ec_cmd(ec, 0, EC_CMD_PWM_GET_FAN_TARGET_RPM, NULL, 0, &resp,
+			  sizeof(resp));
+	if (ret < 0)
 		return -EIO;
-	}
 
-	*val = buf.r.rpm;
+	*val = resp.rpm;
 
 	return 0;
 }
@@ -151,33 +123,20 @@ static ssize_t fw_fan_target_show(struct device *dev,
 // --- pwmN_enable ---
 static ssize_t ec_set_auto_fan_ctrl(u8 idx)
 {
-	struct {
-		struct cros_ec_command msg;
-		struct ec_params_auto_fan_ctrl_v1 p;
-	} __packed buf;
-
-	struct cros_ec_device *ec;
 	int ret;
 	if (!ec_device)
 		return -ENODEV;
 
-	ec = dev_get_drvdata(ec_device);
+	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
-	// Zero out the data
-	memset(&buf, 0, sizeof(buf));
+	struct ec_params_auto_fan_ctrl_v1 params = {
+		.fan_idx = idx,
+	};
 
-	// Set the values
-	buf.msg.version = 1;
-	buf.msg.command = EC_CMD_THERMAL_AUTO_FAN_CTRL;
-	buf.msg.outsize = sizeof(buf.p);
-	buf.msg.insize = 0;
-
-	buf.p.fan_idx = idx;
-
-	ret = cros_ec_cmd_xfer_status(ec, &buf.msg);
-	if (ret < 0) {
+	ret = cros_ec_cmd(ec, 1, EC_CMD_THERMAL_AUTO_FAN_CTRL, &params,
+			  sizeof(params), NULL, 0);
+	if (ret < 0)
 		return -EIO;
-	}
 
 	return 0;
 }
@@ -207,34 +166,21 @@ static ssize_t fw_pwm_enable_store(struct device *dev,
 // --- pwmN ---
 static ssize_t ec_set_fan_duty(u8 idx, u32 *val)
 {
-	struct {
-		struct cros_ec_command msg;
-		struct ec_params_pwm_set_fan_duty_v1 p;
-	} __packed buf;
-
-	struct cros_ec_device *ec;
 	int ret;
 	if (!ec_device)
 		return -ENODEV;
 
-	ec = dev_get_drvdata(ec_device);
+	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
-	// Zero out the data
-	memset(&buf, 0, sizeof(buf));
+	struct ec_params_pwm_set_fan_duty_v1 params = {
+		.percent = *val,
+		.fan_idx = idx,
+	};
 
-	// Set the values
-	buf.msg.version = 1;
-	buf.msg.command = EC_CMD_PWM_SET_FAN_DUTY;
-	buf.msg.outsize = sizeof(buf.p);
-	buf.msg.insize = 0;
-
-	buf.p.percent = *val;
-	buf.p.fan_idx = idx;
-
-	ret = cros_ec_cmd_xfer_status(ec, &buf.msg);
-	if (ret < 0) {
+	ret = cros_ec_cmd(ec, 1, EC_CMD_PWM_SET_FAN_DUTY, &params,
+			  sizeof(params), NULL, 0);
+	if (ret < 0)
 		return -EIO;
-	}
 
 	return 0;
 }
@@ -351,8 +297,6 @@ static int device_match_cros_ec(struct device *dev, const void *foo)
 
 static int __init fw_hwmon_init(void)
 {
-	struct cros_ec_device *ec;
-
 	ec_device = bus_find_device(&platform_bus_type, NULL, NULL,
 				    device_match_cros_ec);
 	if (!ec_device) {
@@ -360,7 +304,7 @@ static int __init fw_hwmon_init(void)
 		return -EINVAL;
 	}
 	ec_device = ec_device->parent;
-	ec = dev_get_drvdata(ec_device);
+	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
 	if (!ec->cmd_readmem) {
 		printk(KERN_WARNING "framework-hwmon: EC not supported.\n");

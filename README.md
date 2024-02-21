@@ -10,6 +10,8 @@ As I have no idea what I'm doing, a lot of this code is based on the existing [f
 
 ## HWMON Interfaces
 
+This driver creates a HWMON interface with the name `framework_hwmon`.
+
 - `fan[1-4]_input` - Read fan speed in RPM (read-only)
 - `fan[1-4]_target` - Set target fan speed in RPM
   - read-write on the first fan, write-only on the others
