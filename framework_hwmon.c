@@ -1,3 +1,14 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Framework Laptop HWMON Driver
+ *
+ * Copyright (C) 2024 Stephen Horvath
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
 #include <linux/hwmon-sysfs.h>
 #include <linux/hwmon.h>
 #include <linux/kernel.h>
@@ -5,6 +16,8 @@
 #include <linux/platform_data/cros_ec_commands.h>
 #include <linux/platform_data/cros_ec_proto.h>
 #include <linux/platform_device.h>
+
+#define DRV_NAME "framework_hwmon"
 
 static struct device *hwmon_dev;
 
@@ -125,7 +138,6 @@ static ssize_t fw_fan_target_show(struct device *dev,
 }
 
 // --- fanN_fault ---
-// Read the current fan speed from the EC's memory
 static ssize_t fw_fan_fault_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -141,7 +153,6 @@ static ssize_t fw_fan_fault_show(struct device *dev,
 }
 
 // --- fanN_alarm ---
-// Read the current fan speed from the EC's memory
 static ssize_t fw_fan_alarm_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -377,27 +388,27 @@ static int __init fw_hwmon_init(void)
 	ec_device = bus_find_device(&platform_bus_type, NULL, NULL,
 				    device_match_cros_ec);
 	if (!ec_device) {
-		printk(KERN_WARNING "framework-hwmon: failed to find EC.\n");
+		printk(KERN_WARNING DRV_NAME ": failed to find EC.\n");
 		return -EINVAL;
 	}
 	ec_device = ec_device->parent;
 	struct cros_ec_device *ec = dev_get_drvdata(ec_device);
 
 	if (!ec->cmd_readmem) {
-		printk(KERN_WARNING "framework-hwmon: EC not supported.\n");
+		printk(KERN_WARNING DRV_NAME ": EC not supported.\n");
 		return -EINVAL;
 	}
 
 	size_t fan_count;
 	if (ec_count_fans(&fan_count) < 0) {
-		printk(KERN_WARNING "framework-hwmon: failed to count fans.\n");
+		printk(KERN_WARNING DRV_NAME ": failed to count fans.\n");
 		return -EINVAL;
 	}
-	// NULL terminates the list
+	// NULL terminates the list after the last detected fan
 	fw_hwmon_attrs[fan_count * FW_ATTRS_PER_FAN] = NULL;
 
-	hwmon_dev = hwmon_device_register_with_groups(
-		ec_device, "framework_hwmon", NULL, fw_hwmon_groups);
+	hwmon_dev = hwmon_device_register_with_groups(ec_device, DRV_NAME, NULL,
+						      fw_hwmon_groups);
 	if (IS_ERR(hwmon_dev))
 		return PTR_ERR(hwmon_dev);
 
